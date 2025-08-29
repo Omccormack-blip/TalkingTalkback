@@ -19,6 +19,31 @@ export const AdminView: React.FC = () => {
     }
   };
 
+  const deleteConversation = async (conversation: Conversation) => {
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+    
+    try {
+      // Extract filename from conversation
+      const filename = `${conversation.id}_${new Date(conversation.endTime || conversation.startTime).getTime()}.json`;
+      
+      const response = await fetch(`/api/conversations/${filename}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Remove from local state
+        setConversations(prev => prev.filter(c => c.id !== conversation.id));
+        if (selectedConversation?.id === conversation.id) {
+          setSelectedConversation(null);
+        }
+      } else {
+        console.error('Failed to delete conversation');
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
   useEffect(() => {
     fetchConversations();
     const interval = setInterval(fetchConversations, 10000);
@@ -55,26 +80,39 @@ export const AdminView: React.FC = () => {
                 {conversations.map((conv) => (
                   <div
                     key={conv.id}
-                    onClick={() => setSelectedConversation(conv)}
-                    className={`p-4 rounded-lg cursor-pointer transition-colors ${
+                    className={`p-4 rounded-lg transition-colors ${
                       selectedConversation?.id === conv.id
                         ? 'bg-purple-600'
                         : 'bg-gray-800 hover:bg-gray-700'
                     }`}
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="text-sm text-gray-400">
-                          {new Date(conv.startTime).toLocaleString()}
-                        </div>
-                        <div className="font-medium">
-                          {conv.messages.length} messages
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          Duration: {formatDuration(conv.startTime, conv.endTime)}
+                    <div 
+                      onClick={() => setSelectedConversation(conv)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="text-sm text-gray-400">
+                            {new Date(conv.startTime).toLocaleString()}
+                          </div>
+                          <div className="font-medium">
+                            {conv.messages.length} messages
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            Duration: {formatDuration(conv.startTime, conv.endTime)}
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversation(conv);
+                      }}
+                      className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+                    >
+                      Delete
+                    </button>
                   </div>
                 ))}
               </div>
@@ -87,11 +125,21 @@ export const AdminView: React.FC = () => {
             {selectedConversation ? (
               <div className="bg-gray-800 rounded-lg p-4 max-h-[600px] overflow-y-auto">
                 <div className="mb-4">
-                  <div className="text-sm text-gray-400">
-                    ID: {selectedConversation.id}
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    Started: {new Date(selectedConversation.startTime).toLocaleString()}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-sm text-gray-400">
+                        ID: {selectedConversation.id}
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Started: {new Date(selectedConversation.startTime).toLocaleString()}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => deleteConversation(selectedConversation)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+                    >
+                      Delete This Conversation
+                    </button>
                   </div>
                 </div>
                 

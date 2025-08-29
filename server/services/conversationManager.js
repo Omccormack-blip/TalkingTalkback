@@ -102,6 +102,18 @@ class ConversationManagerClass {
     return this.conversations.get(conversationId);
   }
 
+  async deleteConversation(filename) {
+    const filepath = path.join(__dirname, '../../conversations', filename);
+    try {
+      await fs.unlink(filepath);
+      console.log(`Conversation deleted: ${filename}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      throw error;
+    }
+  }
+
   extractTopics(conversation) {
     const topics = new Set();
     

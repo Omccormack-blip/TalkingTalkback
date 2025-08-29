@@ -42,4 +42,14 @@ router.post('/:id/end', async (req, res) => {
   }
 });
 
+router.delete('/:filename', async (req, res) => {
+  try {
+    await ConversationManager.deleteConversation(req.params.filename);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    res.status(500).json({ error: 'Failed to delete conversation' });
+  }
+});
+
 export default router;

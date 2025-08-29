@@ -143,10 +143,20 @@ Remember: You're gathering visitor insights, not providing information. Stay foc
         break;
       
       case 'conversation.item.created':
-        if (message.item.role === 'user') {
-          ConversationManager.addMessage(this.conversationId, 'user', message.item);
-        } else if (message.item.role === 'assistant') {
-          ConversationManager.addMessage(this.conversationId, 'assistant', message.item);
+        // Store the item for later transcript update
+        if (!this.conversationItems) {
+          this.conversationItems = new Map();
+        }
+        this.conversationItems.set(message.item.id, {
+          role: message.item.role,
+          transcript: ''
+        });
+        break;
+      
+      case 'conversation.item.input_audio_transcription.completed':
+        // User's speech transcription completed
+        if (message.transcript) {
+          ConversationManager.addMessage(this.conversationId, 'user', message.transcript);
         }
         break;
       
@@ -156,6 +166,19 @@ Remember: You're gathering visitor insights, not providing information. Stay foc
           text: message.delta,
           role: 'assistant'
         }));
+        // Accumulate assistant transcript
+        if (!this.assistantTranscript) {
+          this.assistantTranscript = '';
+        }
+        this.assistantTranscript += message.delta;
+        break;
+      
+      case 'response.audio_transcript.done':
+        // Assistant's response transcript completed
+        if (this.assistantTranscript) {
+          ConversationManager.addMessage(this.conversationId, 'assistant', this.assistantTranscript);
+          this.assistantTranscript = '';
+        }
         break;
       
       case 'response.audio.delta':
@@ -187,7 +210,11 @@ Remember: You're gathering visitor insights, not providing information. Stay foc
         break;
       
       default:
-        console.log('OpenAI message:', message.type);
+        if (message.type !== 'input_audio_buffer.committed' && 
+            message.type !== 'response.created' &&
+            message.type !== 'conversation.item.input_audio_transcription.delta') {
+          console.log('OpenAI message:', message.type);
+        }
     }
   }
 
